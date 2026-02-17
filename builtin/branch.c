@@ -809,6 +809,8 @@ int cmd_branch(int argc,
 	else if (!skip_prefix(head, "refs/heads/", &head))
 		die(_("HEAD not found below refs/heads!"));
 
+	repo_config_get_string(the_repository, "branch.namePrefix", &name_prefix);
+
 	argc = parse_options(argc, argv, prefix, options, builtin_branch_usage,
 			     0);
 
