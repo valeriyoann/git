@@ -365,6 +365,55 @@ int read_branch_desc(struct strbuf *buf, const char *branch_name)
 	return 0;
 }
 
+static char *get_current_branch_name()
+{
+	const char *const prefix = "refs/heads/";
+	struct object_id rev;
+	const char *p;
+	char *output;
+	char *path;
+	int flag;
+
+	path = refs_resolve_refdup(get_main_ref_store(the_repository),
+							   "HEAD", 0, &rev, &flag);
+	if (!path) {
+		exit(die_message(_("Failed to get the current branch's path")));
+	} else if (!(flag & REF_ISSYMREF)) {
+		FREE_AND_NULL(path);
+		exit(die_message(_("Failed to get the current branch's name")));
+	}
+
+	if (skip_prefix(path, prefix, &p)) {
+		output = xstrdup(p);
+		free(path);
+		return output;
+	}
+
+	exit(die_message(_("Failed to get the current branch's name")));
+}
+
+void add_branch_prefix(const char *name_prefix, struct strbuf *buf)
+{
+	if (!name_prefix)
+		return;
+
+	if (name_prefix[0] != '@') {
+		strbuf_addstr(buf, name_prefix);
+		return;
+	}
+
+	if (strcmp(name_prefix, "@{current}") == 0) {
+		char *current_branch_name = get_current_branch_name();
+
+		strbuf_addstr(buf, current_branch_name);
+		free(current_branch_name);
+	} else {
+		advise(_("Token '%s' unrecognized, only '@{current}' is managed currently"),
+			   name_prefix);
+		exit(EINVAL);
+	}
+}
+
 /*
  * Check if 'name' can be a valid name for a branch; die otherwise.
  * Return 1 if the named branch already exists; return 0 otherwise.
